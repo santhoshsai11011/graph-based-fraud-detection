@@ -38,13 +38,24 @@ class FraudPredictor:
         risk = "LOW"
 
         if probability > 0.90:
+
             risk = "HIGH"
 
         elif probability > 0.70:
+
             risk = "MEDIUM"
 
         return {
-            "probability": float(probability),
-            "prediction": int(prediction),
-            "risk": risk
+            "probability":
+                float(probability),
+
+            "prediction":
+                int(prediction),
+
+            "risk":
+                risk
         }
+
+    def get_model(self):
+
+        return self.model
