@@ -16,6 +16,15 @@ from graph_analysis import (
     clustering_statistics
 )
 
+from prepare_ml_data import (
+    prepare_dataset
+)
+
+from logistic_model import (
+    train_logistic_regression,
+    save_model
+)
+
 def main():
     print("\nLoading Dataset...\n")
 
@@ -94,6 +103,21 @@ def main():
     print("\nFinal Dataset Sample:")
     print(final_df.head())
 
+    print("\nPreparing Dataset For Machine Learning...")
+    ml_df = prepare_dataset(final_df)
+    print("\nML Dataset Shape:")
+    print(ml_df.shape)
 
+    print("\nTraining Logistic Regression...")
+
+    model, scaler, results = (train_logistic_regression(ml_df))
+
+    Path("models").mkdir(exist_ok=True)
+    save_model(model,scaler)
+
+    print("\nModel Metrics")
+    print("-" * 40)
+    for metric, value in results.items():
+        print(f"{metric}: {value:.4f}")
 if __name__ == "__main__":
     main()
