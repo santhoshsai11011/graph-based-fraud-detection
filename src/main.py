@@ -36,6 +36,18 @@ from feature_importance import (
 
 from temporal_split import (temporal_split)
 
+from graph_data import (
+    build_graph_data
+)
+
+from graphsage_model import (
+    GraphSAGE
+)
+
+from train_graphsage import (
+    train_graphsage
+)
+
 def main():
     print("\nLoading Dataset...\n")
 
@@ -157,7 +169,21 @@ def main():
     for metric, value in (xgb_results.items()):
         print(f"{metric}: {value:.4f}")
 
-    plot_feature_importance(xgb_model,feature_names)   
+    plot_feature_importance(xgb_model,feature_names) 
+
+
+    print("\nPreparing GraphSAGE Data...")
+    graph_data = build_graph_data(processed_df,edges)  
+
+    graphsage_model = GraphSAGE(graph_data.num_node_features)
+
+    print("\nTraining GraphSAGE...")
+    graphsage_results = (train_graphsage(graphsage_model,graph_data,epochs=20))
+
+    print("\nGraphSAGE Results")
+    print("-" * 40)
+    for k, v in (graphsage_results.items()):
+        print(f"{k}: {v:.4f}")
 
 if __name__ == "__main__":
     main()
