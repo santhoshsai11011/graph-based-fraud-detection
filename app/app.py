@@ -3,8 +3,8 @@ from pathlib import Path
 
 import pandas as pd
 import streamlit as st
+import streamlit.components.v1 as components
 
-# Import from src folder
 sys.path.append(
     str(
         Path(__file__).resolve().parent.parent / "src"
@@ -12,6 +12,7 @@ sys.path.append(
 )
 
 from predictor import FraudPredictor
+from network_visualization import build_transaction_network
 
 # --------------------------------------------------
 # PAGE CONFIG
@@ -35,7 +36,16 @@ def load_dataset():
     )
 
 
+@st.cache_data
+def load_edges():
+
+    return pd.read_csv(
+        "data/raw/elliptic_txs_edgelist.csv"
+    )
+
+
 dataset = load_dataset()
+edges = load_edges()
 
 predictor = FraudPredictor()
 
@@ -50,7 +60,7 @@ st.title(
 st.markdown(
     """
 Detect suspicious Bitcoin transactions using machine learning,
-graph analytics, and network topology features.
+graph analytics and graph neural networks.
 """
 )
 
@@ -147,7 +157,7 @@ st.sidebar.write(
 )
 
 # --------------------------------------------------
-# PREDICTION SECTION
+# PREDICTION
 # --------------------------------------------------
 
 st.subheader(
@@ -158,117 +168,129 @@ if st.sidebar.button(
     "Predict"
 ):
 
-    if not transaction_id:
+    try:
 
-        st.warning(
-            "Please enter a Transaction ID."
+        transaction_id = int(
+            transaction_id
         )
 
-    else:
+        transaction = dataset[
+            dataset["tx_id"]
+            == transaction_id
+        ]
 
-        try:
+        if transaction.empty:
 
-            transaction_id = int(
-                transaction_id
+            st.error(
+                "Transaction not found."
             )
 
-            transaction = dataset[
-                dataset["tx_id"]
-                == transaction_id
-            ]
+        else:
 
-            if transaction.empty:
+            result = predictor.predict_transaction(
+                transaction
+            )
 
-                st.error(
-                    "Transaction not found."
-                )
+            actual_class = str(
+                transaction["class"]
+                .iloc[0]
+            )
+
+            if actual_class == "1":
+
+                actual_label = "FRAUD"
+
+            elif actual_class == "2":
+
+                actual_label = "LEGITIMATE"
 
             else:
 
-                result = (
-                    predictor
-                    .predict_transaction(
-                        transaction
-                    )
-                )
+                actual_label = "UNKNOWN"
 
-                actual_class = str(
-                    transaction["class"]
-                    .iloc[0]
-                )
-
-                if actual_class == "1":
-
-                    actual_label = "FRAUD"
-
-                elif actual_class == "2":
-
-                    actual_label = "LEGITIMATE"
-
-                else:
-
-                    actual_label = "UNKNOWN"
-
-                if result["prediction"] == 1:
-
-                    prediction = "FRAUD"
-
-                else:
-
-                    prediction = "LEGITIMATE"
-
-                st.subheader(
-                    "Prediction Results"
-                )
-
-                metric1, metric2, metric3 = (
-                    st.columns(3)
-                )
-
-                metric1.metric(
-                    "Fraud Probability",
-                    f"{result['probability']:.2%}"
-                )
-
-                metric2.metric(
-                    "Risk Level",
-                    result["risk"]
-                )
-
-                metric3.metric(
-                    "Prediction",
-                    prediction
-                )
-
-                st.markdown("---")
-
-                st.subheader(
-                    "Transaction Information"
-                )
-
-                info1, info2 = st.columns(2)
-
-                info1.write(
-                    f"**Transaction ID:** {transaction_id}"
-                )
-
-                info2.write(
-                    f"**Actual Label:** {actual_label}"
-                )
-
-                st.markdown("---")
-
-                st.subheader(
-                    "Transaction Record"
-                )
-
-                st.dataframe(
-                    transaction,
-                    use_container_width=True
-                )
-
-        except ValueError:
-
-            st.error(
-                "Please enter a valid numeric Transaction ID."
+            prediction = (
+                "FRAUD"
+                if result["prediction"] == 1
+                else "LEGITIMATE"
             )
+
+            st.subheader(
+                "Prediction Results"
+            )
+
+            m1, m2, m3 = st.columns(3)
+
+            m1.metric(
+                "Fraud Probability",
+                f"{result['probability']:.2%}"
+            )
+
+            m2.metric(
+                "Risk Level",
+                result["risk"]
+            )
+
+            m3.metric(
+                "Prediction",
+                prediction
+            )
+
+            st.markdown("---")
+
+            st.subheader(
+                "Transaction Information"
+            )
+
+            c1, c2 = st.columns(2)
+
+            c1.write(
+                f"**Transaction ID:** {transaction_id}"
+            )
+
+            c2.write(
+                f"**Actual Label:** {actual_label}"
+            )
+
+            st.markdown("---")
+
+            st.subheader(
+                "Transaction Record"
+            )
+
+            st.dataframe(
+                transaction,
+                use_container_width=True
+            )
+
+            st.markdown("---")
+
+            st.subheader(
+                "🌐 Transaction Network"
+            )
+
+            html_file = (
+                build_transaction_network(
+                    transaction_id,
+                    edges,
+                    dataset
+                )
+            )
+
+            with open(
+                html_file,
+                "r",
+                encoding="utf-8"
+            ) as file:
+
+                html = file.read()
+
+            components.html(
+                html,
+                height=750
+            )
+
+    except Exception as e:
+
+        st.error(
+            str(e)
+        )
