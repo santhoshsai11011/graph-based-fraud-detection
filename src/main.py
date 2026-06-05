@@ -25,6 +25,15 @@ from logistic_model import (
     save_model
 )
 
+from xgboost_model import (
+    train_xgboost,
+    save_xgboost
+)
+
+from feature_importance import (
+    plot_feature_importance
+)
+
 def main():
     print("\nLoading Dataset...\n")
 
@@ -119,5 +128,17 @@ def main():
     print("-" * 40)
     for metric, value in results.items():
         print(f"{metric}: {value:.4f}")
+
+    print("\nTraining XGBoost...")
+    xgb_model, xgb_results, feature_names = (train_xgboost(ml_df))
+    save_xgboost(xgb_model)
+
+    print("\nXGBoost Metrics")
+    print("-" * 40)
+    for metric, value in (xgb_results.items()):
+        print(f"{metric}: {value:.4f}")
+
+    plot_feature_importance(xgb_model,feature_names)   
+
 if __name__ == "__main__":
     main()
