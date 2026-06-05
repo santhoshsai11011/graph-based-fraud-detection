@@ -1,7 +1,3 @@
-from sklearn.model_selection import (
-    train_test_split
-)
-
 from sklearn.preprocessing import (
     StandardScaler
 )
@@ -22,7 +18,10 @@ from sklearn.metrics import (
 import joblib
 
 
-def train_logistic_regression(df):
+def train_logistic_temporal(
+    train_df,
+    test_df
+):
 
     drop_columns = [
         "tx_id",
@@ -30,21 +29,17 @@ def train_logistic_regression(df):
         "target"
     ]
 
-    X = df.drop(
+    X_train = train_df.drop(
         columns=drop_columns
     )
 
-    y = df["target"]
+    y_train = train_df["target"]
 
-    X_train, X_test, y_train, y_test = (
-        train_test_split(
-            X,
-            y,
-            test_size=0.2,
-            random_state=42,
-            stratify=y
-        )
+    X_test = test_df.drop(
+        columns=drop_columns
     )
+
+    y_test = test_df["target"]
 
     scaler = StandardScaler()
 
@@ -97,7 +92,10 @@ def train_logistic_regression(df):
             )
     }
 
-    print("\nClassification Report")
+    print(
+        "\nClassification Report"
+    )
+
     print("-" * 50)
 
     print(
@@ -107,7 +105,10 @@ def train_logistic_regression(df):
         )
     )
 
-    print("\nConfusion Matrix")
+    print(
+        "\nConfusion Matrix"
+    )
+
     print("-" * 50)
 
     print(

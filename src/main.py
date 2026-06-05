@@ -21,18 +21,20 @@ from prepare_ml_data import (
 )
 
 from logistic_model import (
-    train_logistic_regression,
+    train_logistic_temporal,
     save_model
 )
 
 from xgboost_model import (
-    train_xgboost,
+    train_xgboost_temporal,
     save_xgboost
 )
 
 from feature_importance import (
     plot_feature_importance
 )
+
+from temporal_split import (temporal_split)
 
 def main():
     print("\nLoading Dataset...\n")
@@ -45,7 +47,7 @@ def main():
     )
 
     print("Dataset Loaded Successfully\n")
-
+    print(processed_df.columns[:15])
     print(f"Features Shape: {features.shape}")
     print(f"Classes Shape: {classes.shape}")
     print(f"Edges Shape: {edges.shape}")
@@ -114,12 +116,26 @@ def main():
 
     print("\nPreparing Dataset For Machine Learning...")
     ml_df = prepare_dataset(final_df)
+
+    train_df, val_df, test_df = (
+    temporal_split(ml_df))
+
+    print("\nTemporal Split")
+
+    print(f"Train Shape: {train_df.shape}")
+
+    print(f"Validation Shape: {val_df.shape}")
+    print(f"Test Shape: {test_df.shape}")
+
     print("\nML Dataset Shape:")
     print(ml_df.shape)
 
     print("\nTraining Logistic Regression...")
 
-    model, scaler, results = (train_logistic_regression(ml_df))
+    model, scaler, results = (train_logistic_temporal(
+    train_df,
+    test_df
+))
 
     Path("models").mkdir(exist_ok=True)
     save_model(model,scaler)
@@ -130,7 +146,10 @@ def main():
         print(f"{metric}: {value:.4f}")
 
     print("\nTraining XGBoost...")
-    xgb_model, xgb_results, feature_names = (train_xgboost(ml_df))
+    xgb_model, xgb_results, feature_names = (train_xgboost_temporal(
+    train_df,
+    test_df
+))
     save_xgboost(xgb_model)
 
     print("\nXGBoost Metrics")

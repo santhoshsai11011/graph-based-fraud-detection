@@ -1,7 +1,3 @@
-from sklearn.model_selection import (
-    train_test_split
-)
-
 from sklearn.metrics import (
     classification_report,
     confusion_matrix,
@@ -17,7 +13,10 @@ from xgboost import XGBClassifier
 import joblib
 
 
-def train_xgboost(df):
+def train_xgboost_temporal(
+    train_df,
+    test_df
+):
 
     drop_columns = [
         "tx_id",
@@ -25,27 +24,29 @@ def train_xgboost(df):
         "target"
     ]
 
-    X = df.drop(
+    X_train = train_df.drop(
         columns=drop_columns
     )
 
-    y = df["target"]
+    y_train = train_df["target"]
 
-    X_train, X_test, y_train, y_test = (
-        train_test_split(
-            X,
-            y,
-            test_size=0.2,
-            random_state=42,
-            stratify=y
-        )
+    X_test = test_df.drop(
+        columns=drop_columns
     )
 
-    fraud_count = sum(y_train == 1)
-    legit_count = sum(y_train == 0)
+    y_test = test_df["target"]
+
+    fraud_count = sum(
+        y_train == 1
+    )
+
+    legit_count = sum(
+        y_train == 0
+    )
 
     scale_pos_weight = (
-        legit_count / fraud_count
+        legit_count /
+        fraud_count
     )
 
     model = XGBClassifier(
@@ -68,9 +69,11 @@ def train_xgboost(df):
         X_test
     )
 
-    probabilities = model.predict_proba(
-        X_test
-    )[:, 1]
+    probabilities = (
+        model.predict_proba(
+            X_test
+        )[:, 1]
+    )
 
     results = {
         "accuracy":
@@ -104,7 +107,10 @@ def train_xgboost(df):
             )
     }
 
-    print("\nClassification Report")
+    print(
+        "\nClassification Report"
+    )
+
     print("-" * 50)
 
     print(
@@ -114,7 +120,10 @@ def train_xgboost(df):
         )
     )
 
-    print("\nConfusion Matrix")
+    print(
+        "\nConfusion Matrix"
+    )
+
     print("-" * 50)
 
     print(
@@ -127,11 +136,13 @@ def train_xgboost(df):
     return (
         model,
         results,
-        X.columns
+        X_train.columns
     )
 
 
-def save_xgboost(model):
+def save_xgboost(
+    model
+):
 
     joblib.dump(
         model,
