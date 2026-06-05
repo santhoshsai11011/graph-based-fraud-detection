@@ -9,103 +9,170 @@ def build_transaction_network(
     output_file="temp_graph.html"
 ):
 
-    G = nx.Graph()
+    # ------------------------------------------
+    # Build Full Graph
+    # ------------------------------------------
 
-    outgoing = edges_df[
-        edges_df["txId1"] == transaction_id
-    ]
-
-    incoming = edges_df[
-        edges_df["txId2"] == transaction_id
-    ]
-
-    neighbors = set(
-        outgoing["txId2"]
+    full_graph = nx.from_pandas_edgelist(
+        edges_df,
+        source="txId1",
+        target="txId2"
     )
 
-    neighbors.update(
-        incoming["txId1"]
-    )
+    # ------------------------------------------
+    # Get 2-Hop Neighborhood
+    # ------------------------------------------
 
-    print(f"Outgoing Connections: {len(outgoing)}")
- 
-    print(f"Incoming Connections: {len(incoming)}")
+    if transaction_id not in full_graph:
 
-    print(f"Total Neighbors: {len(neighbors)}")
-
-
-
-
-    G.add_node(transaction_id)
-
-    for neighbor in neighbors:
-
-        G.add_node(neighbor)
-
-        G.add_edge(
-            transaction_id,
-            neighbor
+        net = Network(
+            height="700px",
+            width="100%"
         )
 
+        net.save_graph(
+            output_file
+        )
+
+        return output_file
+
+    nodes = {transaction_id}
+
+    first_hop = set(
+        full_graph.neighbors(
+            transaction_id
+        )
+    )
+
+    nodes.update(
+        first_hop
+    )
+
+    for neighbor in first_hop:
+
+        second_hop = set(
+            full_graph.neighbors(
+                neighbor
+            )
+        )
+
+        nodes.update(
+            second_hop
+        )
+
+    subgraph = (
+        full_graph
+        .subgraph(nodes)
+        .copy()
+    )
+
+    print(
+        f"Visualization Nodes: "
+        f"{subgraph.number_of_nodes()}"
+    )
+
+    print(
+        f"Visualization Edges: "
+        f"{subgraph.number_of_edges()}"
+    )
+
+    # ------------------------------------------
+    # Create PyVis Network
+    # ------------------------------------------
+
     net = Network(
-        height="700px",
+        height="750px",
         width="100%",
         bgcolor="#111111",
         font_color="white"
     )
 
-    def get_label(tx_id):
+    net.from_nx(
+        subgraph
+    )
 
-        row = dataset[
-            dataset["tx_id"] == tx_id
-        ]
+    # ------------------------------------------
+    # Node Labels / Colors
+    # ------------------------------------------
 
-        if row.empty:
-            return "UNKNOWN"
+    for node in net.nodes:
 
-        value = str(
-            row["class"].iloc[0]
+        tx_id = int(
+            node["id"]
         )
 
-        if value == "1":
-            return "FRAUD"
+        row = dataset[
+            dataset["tx_id"]
+            == tx_id
+        ]
 
-        elif value == "2":
-            return "LEGITIMATE"
+        label = "UNKNOWN"
 
-        return "UNKNOWN"
+        if not row.empty:
 
-    for node in G.nodes():
+            value = str(
+                row["class"]
+                .iloc[0]
+            )
 
-        label = get_label(node)
+            if value == "1":
+
+                label = "FRAUD"
+
+            elif value == "2":
+
+                label = (
+                    "LEGITIMATE"
+                )
 
         color = "yellow"
 
         if label == "FRAUD":
+
             color = "red"
 
         elif label == "LEGITIMATE":
+
             color = "green"
 
-        size = 15
+        node["color"] = color
 
-        if node == transaction_id:
-            color = "blue"
-            size = 35
-
-        net.add_node(
-            node,
-            label=str(node),
-            title=f"Transaction ID: {node}<br>Status: {label}",
-            color=color,
-            size=size
+        node["title"] = (
+            f"Transaction ID: {tx_id}"
+            f"<br>Status: {label}"
         )
 
-    for source, target in G.edges():
-        net.add_edge(
-            source,
-            target
+        node["label"] = str(
+            tx_id
         )
+
+        node["size"] = 12
+
+        if tx_id == transaction_id:
+
+            node["color"] = (
+                "blue"
+            )
+
+            node["size"] = 40
+
+    # ------------------------------------------
+    # Physics Settings
+    # ------------------------------------------
+
+    net.set_options(
+        """
+        {
+          "physics": {
+            "barnesHut": {
+              "gravitationalConstant": -2000,
+              "springLength": 120
+            },
+            "minVelocity": 0.75
+          }
+        }
+        """
+    )
 
     net.save_graph(
         output_file
