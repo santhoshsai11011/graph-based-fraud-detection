@@ -178,7 +178,7 @@ def main():
     graphsage_model = GraphSAGE(graph_data.num_node_features)
 
     print("\nTraining GraphSAGE...")
-    graphsage_results = (train_graphsage(graphsage_model,graph_data,epochs=20))
+    graphsage_results = (train_graphsage(graphsage_model,graph_data,epochs=150))
 
     print("\nGraphSAGE Results")
     print("-" * 40)
