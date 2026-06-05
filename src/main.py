@@ -1,6 +1,12 @@
 from load_data import load_all_data
 from preprocess import preprocess_data, validate_data
 
+from graph_features import (
+    create_graph_feature_dataset
+)
+
+from pathlib import Path
+
 from graph_builder import build_transaction_graph
 
 from graph_analysis import (
@@ -57,8 +63,36 @@ def main():
     clustering = clustering_statistics(G)
     print("\nAverage Clustering Coefficient:",clustering)
 
-    print("\nSample Rows:")
-    print(processed_df.head())
+    print("\nGenerating Graph Features...")
+    graph_features = (create_graph_feature_dataset(G))
+    print("\nGraph Feature Dataset Shape:")
+    print(graph_features.shape)
+    print("\nSample Graph Features:")
+
+    print(graph_features.head())
+
+    final_df = processed_df.merge(
+    graph_features,
+    on="tx_id",
+    how="left")
+
+    print("\nFinal Dataset Shape:")
+    print(final_df.shape)
+
+    processed_dir = Path(
+    "data/processed")
+
+    processed_dir.mkdir(
+    parents=True,
+    exist_ok=True)
+
+    final_df.to_csv(
+    processed_dir /
+    "graph_feature_dataset.csv",
+    index=False)
+
+    print("\nFinal Dataset Sample:")
+    print(final_df.head())
 
 
 if __name__ == "__main__":
